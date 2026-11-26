@@ -1,0 +1,210 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FABLOCK AI | FABLOCK TEC</title>
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#080b12;color:#eef2ff;
+ font-family:Arial,sans-serif;height:100dvh;
+ display:flex;flex-direction:column
+}
+header{
+ padding:16px;border-bottom:1px solid #20283a;
+ display:flex;align-items:center;gap:12px
+}
+.logo{
+ width:42px;height:42px;border-radius:13px;
+ display:grid;place-items:center;
+ background:linear-gradient(135deg,#2563eb,#9333ea);
+ font-weight:bold;font-size:19px
+}
+.brand{font-size:17px;font-weight:bold}
+.sub{font-size:11px;color:#8492aa;margin-top:4px}
+.status{margin-left:auto;font-size:11px;color:#4ade80}
+main{
+ flex:1;overflow-y:auto;padding:20px 15px;
+ display:flex;flex-direction:column;gap:17px
+}
+.welcome{text-align:center;margin:auto 0}
+.welcome h1{font-size:27px}
+.welcome p{color:#94a3b8;font-size:14px;line-height:1.6}
+.message{
+ max-width:88%;padding:13px 15px;border-radius:15px;
+ font-size:14px;line-height:1.6;white-space:pre-wrap;
+ overflow-wrap:anywhere
+}
+.user{align-self:flex-end;background:#243b70}
+.bot{align-self:flex-start;background:#151d2b;border:1px solid #263248}
+.label{font-size:10px;color:#9caac1;margin-bottom:6px}
+footer{padding:13px;border-top:1px solid #20283a}
+.input-area{
+ max-width:850px;margin:auto;display:flex;gap:9px;
+ background:#151d2b;border:1px solid #34415a;
+ border-radius:15px;padding:8px
+}
+textarea{
+ flex:1;background:transparent;color:white;border:0;
+ outline:none;resize:none;padding:10px;font-size:14px;
+ min-height:40px;max-height:120px;font-family:inherit
+}
+button{
+ border:0;border-radius:11px;background:#3478f6;
+ color:white;padding:0 17px;font-weight:bold;cursor:pointer
+}
+button:disabled{opacity:.5}
+.note{text-align:center;color:#65738b;font-size:10px;margin-top:9px}
+#clear{background:transparent;color:#aab8d0;padding:7px;font-size:12px}
+</style>
+</head>
+<body>
+
+<header>
+ <div class="logo">F</div>
+ <div>
+  <div class="brand">FABLOCK AI</div>
+  <div class="sub">Developed by FABLOCK TEC</div>
+ </div>
+ <div class="status" id="status">● Connecting</div>
+</header>
+
+<main id="chat">
+ <div class="welcome" id="welcome">
+  <h1>Welcome to FABLOCK AI</h1>
+  <p>Your AI assistant for programming, technology,<br>
+  education and problem-solving.</p>
+  <p>What would you like to explore today?</p>
+ </div>
+</main>
+
+<footer>
+ <div style="max-width:850px;margin:auto;text-align:right">
+  <button id="clear" onclick="clearChat()">Clear conversation</button>
+ </div>
+ <div class="input-area">
+  <textarea id="message" placeholder="Message FABLOCK AI..."
+  rows="1"></textarea>
+  <button id="send" onclick="sendMessage()">Send</button>
+ </div>
+ <div class="note">FABLOCK AI • Powered by Qwen3</div>
+</footer>
+
+<script>
+const API_URL =
+ "https://acquisitions-navigate-sensors-congratulations.trycloudflare.com";
+
+const chat = document.getElementById("chat");
+const input = document.getElementById("message");
+const send = document.getElementById("send");
+const statusText = document.getElementById("status");
+
+let history = [];
+let busy = false;
+
+async function checkConnection(){
+ try{
+  const r = await fetch(API_URL + "/");
+  if(!r.ok) throw new Error("Offline");
+  statusText.textContent = "● Online";
+  statusText.style.color = "#4ade80";
+ }catch(e){
+  statusText.textContent = "● Offline";
+  statusText.style.color = "#f87171";
+ }
+}
+
+function addMessage(role,text){
+ const welcome = document.getElementById("welcome");
+ if(welcome) welcome.remove();
+
+ const wrap = document.createElement("div");
+ wrap.className = "message " + role;
+
+ const label = document.createElement("div");
+ label.className = "label";
+ label.textContent = role === "user" ? "YOU" : "FABLOCK AI";
+
+ const content = document.createElement("div");
+ content.textContent = text;
+
+ wrap.append(label,content);
+ chat.appendChild(wrap);
+ chat.scrollTop = chat.scrollHeight;
+ return wrap;
+}
+
+async function sendMessage(){
+ const message = input.value.trim();
+ if(!message || busy) return;
+
+ busy = true;
+ send.disabled = true;
+
+ addMessage("user",message);
+ input.value = "";
+
+ const loading = addMessage("bot","FABLOCK AI is thinking...");
+
+ try{
+  const response = await fetch(API_URL + "/api/chat",{
+   method:"POST",
+   headers:{"Content-Type":"application/json"},
+   body:JSON.stringify({
+    message:message,
+    history:history.slice(-10)
+   })
+  });
+
+  if(!response.ok){
+   throw new Error("Server error: " + response.status);
+  }
+
+  const data = await response.json();
+  if(!data.reply) throw new Error("No AI response received.");
+
+  loading.lastChild.textContent = data.reply;
+
+  history.push(
+   {role:"user",content:message},
+   {role:"assistant",content:data.reply}
+  );
+
+  statusText.textContent = "● Online";
+
+ }catch(error){
+  loading.lastChild.textContent =
+   "Connection error: " + error.message +
+   "\nPlease check that the FABLOCK AI server and tunnel are running.";
+  statusText.textContent = "● Connection error";
+  statusText.style.color = "#f87171";
+ }
+
+ busy = false;
+ send.disabled = false;
+ input.focus();
+}
+
+function clearChat(){
+ history = [];
+ chat.innerHTML = `
+ <div class="welcome" id="welcome">
+  <h1>Welcome to FABLOCK AI</h1>
+  <p>Your AI assistant for programming, technology,
+  education and problem-solving.</p>
+ </div>`;
+}
+
+input.addEventListener("keydown",e=>{
+ if(e.key === "Enter" && !e.shiftKey){
+  e.preventDefault();
+  sendMessage();
+ }
+});
+
+checkConnection();
+</script>
+</body>
+</html>
